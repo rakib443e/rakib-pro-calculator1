@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Rakib Pro Calculator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#0e6b4d">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: one column ledger. Header with a live "1 mon = N kg" chip, cards on green-tinted paper, fixed bottom tab bar. */
+:root{
+  --bg:#f2f5f0; --surface:#ffffff; --fg:#14231c; --muted:#58695f; --line:#d6ded5;
+  --accent:#0e6b4d; --accent-fg:#ffffff; --accent-soft:#dcefe5; --good:#12703f; --bad:#b3261e;
+  --f-body:'Hind Siliguri','Noto Sans Bengali','Segoe UI',system-ui,sans-serif;
+  --f-num:'Space Grotesk','Hind Siliguri','Noto Sans Bengali',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1a15; --surface:#16251e; --fg:#e6efe9; --muted:#9fb3a8; --line:#2a3d33;
+    --accent:#4fcf9d; --accent-fg:#06231a; --accent-soft:#1d3a2e; --good:#5fd89a; --bad:#ff8a80; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1a15; --surface:#16251e; --fg:#e6efe9; --muted:#9fb3a8; --line:#2a3d33;
+  --accent:#4fcf9d; --accent-fg:#06231a; --accent-soft:#1d3a2e; --good:#5fd89a; --bad:#ff8a80; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  background:var(--bg); color:var(--fg); font-family:var(--f-body); font-size:16px; line-height:1.5;
+  padding-block:12px 96px;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header.top{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.brand{font-family:var(--f-num);font-weight:700;font-size:1.2rem;letter-spacing:-.01em;min-width:0}
+.top-actions{display:flex;align-items:center;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 12px;font:inherit;font-size:.85rem;cursor:pointer;min-height:36px}
+.chip:hover{border-color:var(--accent)}
+.icon-btn{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;font-size:1.2rem;flex:none}
+.icon-btn:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.panel{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+h2{margin:0;font-size:1.05rem;font-weight:600;text-wrap:balance}
+.muted{color:var(--muted)}
+.hint{margin:0;color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>span{font-size:.85rem;color:var(--muted);font-weight:500}
+input,select{
+  font:inherit;font-size:1.05rem;color:var(--fg);background:var(--bg);border:1px solid var(--line);
+  border-radius:10px;padding:10px 12px;min-height:46px;width:100%;min-width:0;font-variant-numeric:tabular-nums;
+}
+select{appearance:auto}
+.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.row3{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px}
+.btn{font:inherit;font-weight:600;border-radius:10px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);padding:10px 16px;min-height:46px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.warn{border-color:var(--bad);color:var(--bad);background:transparent}
+.btn.warn.armed{background:var(--bad);color:var(--surface)}
+.btn:active{transform:translateY(1px)}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
+.acts .btn{flex:1 1 auto;padding:8px 12px;min-height:42px;font-size:.9rem}
+.seg{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.seg button{flex:1 0 auto;font:inherit;font-size:.92rem;font-weight:500;padding:8px 12px;min-height:42px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.pair{display:flex;gap:8px;flex-wrap:wrap}
+.pair .btn{flex:1 1 140px}
+.res{background:var(--accent-soft);border-color:transparent}
+.res .sub{font-size:.9rem;color:var(--muted)}
+.big{font-family:var(--f-num);font-weight:700;font-size:clamp(1.6rem,7vw,2.3rem);line-height:1.15;letter-spacing:-.01em;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.big.good{color:var(--good)} .big.bad{color:var(--bad)}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.kv span{color:var(--muted)}
+.kv b{font-family:var(--f-num);font-weight:600;text-align:right;overflow-wrap:anywhere}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.mini{background:var(--surface);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.mini .l{font-size:.85rem;color:var(--muted)}
+.mini .v{font-family:var(--f-num);font-weight:700;font-size:1.35rem;overflow-wrap:anywhere}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:420px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);font-size:.95rem;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:600;color:var(--muted);background:var(--bg);position:sticky;top:0}
+tbody tr:last-child td{border-bottom:0}
+.item{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.it-main{display:flex;flex-direction:column;min-width:0}
+.it-main b{overflow-wrap:anywhere}
+.it-main span{font-size:.85rem}
+.it-tot{font-family:var(--f-num);font-weight:700;text-align:right}
+.hist-item{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
+.hist-item:first-child{border-top:0}
+.hist-item .when{font-size:.8rem;color:var(--muted)}
+.hist-item pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:.95rem}
+.hist-item .acts .btn{flex:0 0 auto}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);
+  padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+nav.tabs .in{display:flex;gap:4px;max-width:560px;margin:0 auto}
+nav.tabs button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;font-size:.78rem;font-weight:500;color:var(--muted);background:transparent;border:0;border-radius:10px;padding:6px 2px;min-height:54px;cursor:pointer}
+nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs button[aria-current="page"]{color:var(--accent);background:var(--accent-soft);font-weight:700}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:.9rem;z-index:20;max-width:90vw;overflow-wrap:anywhere;text-align:center}
+@media (prefers-reduced-motion:no-preference){#toast{transition:opacity .2s}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Rakib Pro Calculator</div>
+    <div class="top-actions">
+      <button class="chip" id="mon-chip" data-tab="settings" type="button"></button>
+      <button class="icon-btn" data-tab="settings" type="button" id="gear" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Convert -->
+  <section class="panel" id="p-convert" aria-labelledby="h-convert">
+    <div class="card">
+      <h2 id="h-convert" data-i18n="tabConvert"></h2>
+      <div class="pair">
+        <button class="btn ghost" type="button" data-act="preset" data-from="kg" data-to="mon" data-i18n="kgToMon"></button>
+        <button class="btn ghost" type="button" data-act="preset" data-from="mon" data-to="kg" data-i18n="monToKg"></button>
+      </div>
+      <label class="field"><span data-i18n="amount"></span><input id="cv-amt" inputmode="decimal" autocomplete="off" value="150"></label>
+      <div class="row2">
+        <label class="field"><span data-i18n="from"></span><select id="cv-from" data-units data-def="kg"></select></label>
+        <label class="field"><span data-i18n="to"></span><select id="cv-to" data-units data-def="mon"></select></label>
+      </div>
+      <button class="btn ghost" type="button" data-act="swap" data-i18n="swap"></button>
+    </div>
+    <div class="card res" id="res-convert" aria-live="polite"></div>
+    <div class="acts">
+      <button class="btn" type="button" data-act="save" data-src="convert" data-i18n="save"></button>
+      <button class="btn ghost" type="button" data-act="copy" data-src="convert" data-i18n="copy"></button>
+      <button class="btn ghost" type="button" data-act="share" data-src="convert" data-i18n="share"></button>
+    </div>
+    <div class="card">
+      <h2 data-i18n="allUnits"></h2>
+      <div id="cv-all"></div>
+    </div>
+  </section>
+
+  <!-- Price -->
+  <section class="panel" id="p-price" hidden aria-labelledby="h-price">
+    <div class="card">
+      <h2 id="h-price" data-i18n="tabPrice"></h2>
+      <div class="seg" role="group">
+        <button type="button" data-mode="total" data-i18n="modeTotal"></button>
+        <button type="button" data-mode="unit" data-i18n="modeUnit"></button>
+        <button type="button" data-mode="range" data-i18n="modeRange"></button>
+        <button type="button" data-mode="profit" data-i18n="modeProfit"></button>
+      </div>
+    </div>
+
+    <div class="panel" id="m-total">
+      <div class="card">
+        <div class="row2">
+          <label class="field"><span data-i18n="rate"></span><input id="tt-rate" inputmode="decimal" autocomplete="off" value="1450"></label>
+          <label class="field"><span data-i18n="rateUnit"></span><select id="tt-ru" data-units data-def="mon"></select></label>
+        </div>
+        <div class="row2">
+          <label class="field"><span data-i18n="qty"></span><input id="tt-qty" inputmode="decimal" autocomplete="off" value="150"></label>
+          <label class="field"><span data-i18n="qtyUnit"></span><select id="tt-qu" data-units data-def="kg"></select></label>
+        </div>
+      </div>
+      <div class="card res" id="res-total" aria-live="polite"></div>
+    </div>
+
+    <div class="panel" id="m-unit" hidden>
+      <div class="card">
+        <div class="row2">
+          <label class="field"><span data-i18n="totalPrice"></span><input id="un-total" inputmode="decimal" autocomplete="off" value="58000"></label>
+          <label class="field"><span data-i18n="qty"></span><input id="un-qty" inputmode="decimal" autocomplete="off" value="1000"></label>
+        </div>
+        <label class="field"><span data-i18n="qtyUnit"></span><select id="un-qu" data-units data-def="kg"></select></label>
+      </div>
+      <div class="card res" id="res-unit" aria-live="polite"></div>
+    </div>
+
+    <div class="panel" id="m-range" hidden>
+      <div class="card">
+        <div class="row3">
+          <label class="field"><span data-i18n="rFrom"></span><input id="rg-from" inputmode="decimal" autocomplete="off" value="10"></label>
+          <label class="field"><span data-i18n="rTo"></span><input id="rg-to" inputmode="decimal" autocomplete="off" value="100"></label>
+          <label class="field"><span data-i18n="rStep"></span><input id="rg-step" inputmode="decimal" autocomplete="off" value="10"></label>
+        </div>
+        <label class="field"><span data-i18n="qtyUnit"></span><select id="rg-qu" data-units data-def="kg"></select></label>
+        <div class="row2">
+          <label class="field"><span data-i18n="rate"></span><input id="rg-rate" inputmode="decimal" autocomplete="off" value="60"></label>
+          <label class="field"><span data-i18n="rateUnit"></span><select id="rg-ru" data-units data-def="kg"></select></label>
+        </div>
+      </div>
+      <div id="res-range" aria-live="polite"></div>
+    </div>
+
+    <div class="panel" id="m-profit" hidden>
+      <div class="card">
+        <div class="row2">
+          <label class="field"><span data-i18n="buy"></span><input id="pf-buy" inputmode="decimal" autocomplete="off" value="1400"></label>
+          <label class="field"><span data-i18n="sell"></span><input id="pf-sell" inputmode="decimal" autocomplete="off" value="1500"></label>
+        </div>
+        <label class="field"><span data-i18n="rateUnit"></span><select id="pf-ru" data-units data-def="mon"></select></label>
+        <div class="row2">
+          <label class="field"><span data-i18n="qty"></span><input id="pf-qty" inputmode="decimal" autocomplete="off" value="200"></label>
+          <label class="field"><span data-i18n="qtyUnit"></span><select id="pf-qu" data-units data-def="kg"></select></label>
+        </div>
+      </div>
+      <div class="card res" id="res-profit" aria-live="polite"></div>
+    </div>
+
+    <div class="acts" id="price-acts">
+      <button class="btn" type="button" data-act="save" data-src="price" data-i18n="save"></button>
+      <button class="btn ghost" type="button" data-act="copy" data-src="price" data-i18n="copy"></button>
+      <button class="btn ghost" type="button" data-act="share" data-src="price" data-i18n="share"></button>
+    </div>
+  </section>
+
+  <!-- Khata -->
+  <section class="panel" id="p-khata" hidden aria-labelledby="h-khata">
+    <div class="card">
+      <h2 id="h-khata" data-i18n="tabKhata"></h2>
+      <label class="field"><span data-i18n="itemName"></span><input id="kh-name" autocomplete="off" maxlength="60"></label>
+      <div class="row2">
+        <label class="field"><span data-i18n="qty"></span><input id="kh-qty" inputmode="decimal" autocomplete="off"></label>
+        <label class="field"><span data-i18n="qtyUnit"></span><select id="kh-qu" data-units data-def="kg"></select></label>
+      </div>
+      <div class="row2">
+        <label class="field"><span data-i18n="rate"></span><input id="kh-rate" inputmode="decimal" autocomplete="off"></label>
+        <label class="field"><span data-i18n="rateUnit"></span><select id="kh-ru" data-units data-def="mon"></select></label>
+      </div>
+      <button class="btn" type="button" data-act="kadd" data-i18n="add"></button>
+    </div>
+    <div class="card" id="kh-list-card"><div id="kh-list"></div></div>
+    <div class="card res" id="kh-sum" hidden aria-live="polite"></div>
+    <div class="acts" id="kh-acts">
+      <button class="btn" type="button" data-act="save" data-src="khata" data-i18n="save"></button>
+      <button class="btn ghost" type="button" data-act="copy" data-src="khata" data-i18n="copy"></button>
+      <button class="btn ghost" type="button" data-act="share" data-src="khata" data-i18n="share"></button>
+      <button class="btn warn" type="button" data-act="kclear" data-i18n="clear"></button>
+    </div>
+  </section>
+
+  <!-- History -->
+  <section class="panel" id="p-history" hidden aria-labelledby="h-hist">
+    <div class="card">
+      <h2 id="h-hist" data-i18n="tabHist"></h2>
+      <div id="hist-list"></div>
+    </div>
+    <div class="acts" id="hist-acts">
+      <button class="btn warn" type="button" data-act="hclear" data-i18n="clear"></button>
+    </div>
+  </section>
+
+  <!-- Settings -->
+  <section class="panel" id="p-settings" hidden aria-labelledby="h-set">
+    <div class="card">
+      <h2 id="h-set" data-i18n="monWeight"></h2>
+      <div class="seg" role="group">
+        <button type="button" data-mon="40"></button>
+        <button type="button" data-mon="41"></button>
+        <button type="button" data-mon="42"></button>
+      </div>
+      <label class="field"><span data-i18n="custom"></span><input id="st-mon" inputmode="decimal" autocomplete="off"></label>
+      <p class="hint" id="st-note"></p>
+      <button class="btn ghost" type="button" data-act="resetmon" data-i18n="resetMon"></button>
+    </div>
+    <div class="card">
+      <h2 data-i18n="lang"></h2>
+      <div class="seg" role="group">
+        <button type="button" data-set="lang:bn">বাংলা</button>
+        <button type="button" data-set="lang:en">English</button>
+      </div>
+      <h2 data-i18n="digits"></h2>
+      <div class="seg" role="group">
+        <button type="button" data-set="digits:bn">১২৩</button>
+        <button type="button" data-set="digits:en">123</button>
+      </div>
+      <h2 data-i18n="theme"></h2>
+      <div class="seg" role="group">
+        <button type="button" data-set="theme:auto" data-i18n="auto"></button>
+        <button type="button" data-set="theme:light" data-i18n="light"></button>
+        <button type="button" data-set="theme:dark" data-i18n="dark"></button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<nav class="tabs" aria-label="Main">
+  <div class="in">
+    <button type="button" data-tab="convert"><svg viewBox="0 0 24 24"><path d="M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4"/></svg><span data-i18n="tabConvert"></span></button>
+    <button type="button" data-tab="price"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M9 5c0 8 6 8 6 4M9 14l6 5"/></svg><span data-i18n="tabPrice"></span></button>
+    <button type="button" data-tab="khata"><svg viewBox="0 0 24 24"><path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4"/></svg><span data-i18n="tabKhata"></span></button>
+    <button type="button" data-tab="history"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg><span data-i18n="tabHist"></span></button>
+  </div>
+</nav>
+<div id="toast" role="status" hidden></div>
+
+<script>
+/*CORE*/
+const Core={
+  UNITS:['kg','mon','gram','ser','poya','chhatak','ton','lb'],
+  kgPer(u,mon){
+    switch(u){
+      case 'kg':return 1; case 'mon':return mon; case 'gram':return 0.001;
+      case 'ser':return mon/40; case 'poya':return mon/160; case 'chhatak':return mon/640;
+      case 'ton':return 1000; case 'lb':return 0.45359237;
+    }
+    return 1;
+  },
+  num(s){
+    if(s==null)return NaN;
+    s=String(s).trim().replace(/[০-৯]/g,function(d){return '০১২৩৪৫৬৭৮৯'.indexOf(d)}).replace(/[,\s]/g,'').replace(/[٫।]/g,'.');
+    if(!/^(\d+\.?\d*|\.\d+)$/.test(s))return NaN;
+    return parseFloat(s);
+  },
+  group(n,maxDec){
+    if(!isFinite(n))return '—';
+    var f=Math.pow(10,maxDec);
+    var r=Math.round((n+Number.EPSILON)*f)/f;
+    if(Object.is(r,-0))r=0;
+    return r.toLocaleString('en-IN',{maximumFractionDigits:maxDec});
+  },
+  mixed(kg,mon){
+    var m=Math.floor(kg/mon+1e-9);
+    var rem=Math.round((kg-m*mon)*1e6)/1e6;
+    if(rem>=mon-1e-9){m+=1;rem=0}
+    if(rem<0)rem=0;
+    return {mon:m,kg:rem};
+  }
+};
+/*ENDCORE*/
+
+(function(){
+'use strict';
+var BN='০১২৩৪৫৬৭৮৯';
+function $(s){return document.querySelector(s)}
+function $$(s){return Array.prototype.slice.call(document.querySelectorAll(s))}
+function load(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+
+var S=Object.assign({lang:'bn',digits:'bn',mon:40,theme:'auto'},load('rpc.settings',{}));
+if(!(S.mon>0))S.mon=40;
+var khata=load('rpc.khata',[]); if(!Array.isArray(khata))khata=[];
+var hist=load('rpc.history',[]); if(!Array.isArray(hist))hist=[];
+var cur={}, mode='total', tab='convert';
+
+var T={
+bn:{
+ tabConvert:'রূপান্তর',tabPrice:'দাম হিসাব',tabKhata:'খাতা',tabHist:'ইতিহাস',
+ amount:'পরিমাণ',from:'যে একক থেকে',to:'যে এককে',kgToMon:'কেজি → মণ',monToKg:'মণ → কেজি',swap:'একক উল্টে দিন',allUnits:'সব এককে একসাথে',
+ modeTotal:'মোট দাম',modeUnit:'১ এককের দাম',modeRange:'কতগুলো থেকে কতগুলো',modeProfit:'লাভ-ক্ষতি',
+ rate:'দর (প্রতি এককে)',rateUnit:'দরের একক',qty:'পরিমাণ',qtyUnit:'পরিমাণের একক',totalPrice:'মোট দাম (৳)',
+ perKg:'১ কেজির দাম',perMon:'১ মণের দাম',perSer:'১ সেরের দাম',weight:'ওজন',
+ rFrom:'শুরু',rTo:'শেষ',rStep:'ধাপ',colQty:'পরিমাণ',colKg:'কেজি',colMon:'মণ',colPrice:'দাম',
+ buy:'ক্রয় দর',sell:'বিক্রয় দর',invest:'মোট ক্রয়',sales:'মোট বিক্রয়',profit:'লাভ',loss:'ক্ষতি',even:'লাভ-ক্ষতি নেই',perUnitProfit:'প্রতি',percent:'শতকরা',
+ save:'ইতিহাসে সেভ',copy:'কপি',share:'শেয়ার',copied:'কপি হয়েছে',saved:'সেভ হয়েছে',
+ itemName:'পণ্যের নাম',add:'যোগ করুন',clear:'সব মুছুন',clearConfirm:'নিশ্চিত? আবার চাপুন',
+ noItems:'এখনো কোনো পণ্য যোগ হয়নি। উপরে নাম, পরিমাণ ও দর দিয়ে যোগ করুন।',
+ noHist:'কোনো সেভ করা হিসাব নেই। রূপান্তর, দাম হিসাব বা খাতা থেকে "ইতিহাসে সেভ" চাপুন।',
+ delete:'মুছুন',grand:'সর্বমোট',totalWeight:'মোট ওজন',item:'পণ্য',
+ lang:'ভাষা',digits:'সংখ্যা',theme:'থিম',auto:'অটো',light:'লাইট',dark:'ডার্ক',
+ monWeight:'১ মণ কত কেজি',custom:'নিজের মান (কেজি)',resetMon:'৪০ কেজিতে ফেরান',
+ stNote:'সের, পোয়া ও ছটাক মণের মান থেকে হিসাব হয়: ১ মণ = ৪০ সের, ১ সের = ৪ পোয়া = ১৬ ছটাক।',
+ errEnter:'সংখ্যা লিখুন',errRange:'শুরু, শেষ ও ধাপ লিখুন। ধাপ ০-এর বেশি হতে হবে।',errMany:'সর্বোচ্চ ৩০০ সারি দেখানো যায়। ধাপ বাড়ান।',errQty:'পরিমাণ ও দর দিন',
+ oneMon:'১ মণ =',kgWord:'কেজি',copyAll:'কপি',total:'মোট'
+},
+en:{
+ tabConvert:'Convert',tabPrice:'Price',tabKhata:'Ledger',tabHist:'History',
+ amount:'Amount',from:'From unit',to:'To unit',kgToMon:'kg → mon',monToKg:'mon → kg',swap:'Swap units',allUnits:'In all units',
+ modeTotal:'Total price',modeUnit:'Price of 1 unit',modeRange:'From – to table',modeProfit:'Profit / loss',
+ rate:'Rate (per unit)',rateUnit:'Rate unit',qty:'Quantity',qtyUnit:'Quantity unit',totalPrice:'Total price (৳)',
+ perKg:'Price of 1 kg',perMon:'Price of 1 mon',perSer:'Price of 1 ser',weight:'Weight',
+ rFrom:'From',rTo:'To',rStep:'Step',colQty:'Quantity',colKg:'kg',colMon:'mon',colPrice:'Price',
+ buy:'Buying rate',sell:'Selling rate',invest:'Total cost',sales:'Total sale',profit:'Profit',loss:'Loss',even:'No profit or loss',perUnitProfit:'Per',percent:'Percent',
+ save:'Save to history',copy:'Copy',share:'Share',copied:'Copied',saved:'Saved',
+ itemName:'Item name',add:'Add item',clear:'Clear all',clearConfirm:'Sure? Tap again',
+ noItems:'No items yet. Add a name, quantity and rate above.',
+ noHist:'Nothing saved yet. Tap "Save to history" in Convert, Price or Ledger.',
+ delete:'Delete',grand:'Grand total',totalWeight:'Total weight',item:'Item',
+ lang:'Language',digits:'Digits',theme:'Theme',auto:'Auto',light:'Light',dark:'Dark',
+ monWeight:'Kilograms in 1 mon',custom:'Custom value (kg)',resetMon:'Reset to 40 kg',
+ stNote:'Ser, poya and chhatak follow the mon value: 1 mon = 40 ser, 1 ser = 4 poya = 16 chhatak.',
+ errEnter:'Enter a number',errRange:'Enter from, to and step. Step must be above 0.',errMany:'At most 300 rows can be shown. Increase the step.',errQty:'Enter quantity and rate',
+ oneMon:'1 mon =',kgWord:'kg',copyAll:'Copy',total:'Total'
+}};
+var UN={
+ bn:{kg:'কেজি',mon:'মণ',gram:'গ্রাম',ser:'সের',poya:'পোয়া',chhatak:'ছটাক',ton:'টন',lb:'পাউন্ড'},
+ en:{kg:'kg',mon:'mon',gram:'gram',ser:'ser',poya:'poya',chhatak:'chhatak',ton:'tonne',lb:'lb'}
+};
+
+function t(k){return (T[S.lang]&&T[S.lang][k])||T.bn[k]||k}
+function u(k){return UN[S.lang][k]}
+function dig(s){return S.digits==='bn'?String(s).replace(/[0-9]/g,function(d){return BN[d]}):String(s)}
+function fmt(n,d){return dig(Core.group(n,d==null?4:d))}
+function money(n){return '৳ '+fmt(n,2)}
+function kgPer(k){return Core.kgPer(k,S.mon)}
+function num(id){return Core.num($(id).value)}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function mixedText(kg){
+  var m=Core.mixed(kg,S.mon), p=[];
+  if(m.mon>0)p.push(fmt(m.mon)+' '+u('mon'));
+  if(m.kg>0||!p.length)p.push(fmt(m.kg,3)+' '+u('kg'));
+  return p.join(' ');
+}
+function kv(l,v){return '<div class="kv"><span>'+l+'</span><b>'+v+'</b></div>'}
+function hint(k){return '<p class="hint">'+t(k)+'</p>'}
+
+var toastTimer;
+function toast(msg){
+  var el=$('#toast'); el.textContent=msg; el.hidden=false;
+  clearTimeout(toastTimer); toastTimer=setTimeout(function(){el.hidden=true},1800);
+}
+function copyText(x){
+  if(!x){toast(t('errEnter'));return}
+  function done(){toast(t('copied'))}
+  function fb(){
+    try{var a=document.createElement('textarea');a.value=x;a.style.cssText='position:fixed;opacity:0;top:0';document.body.appendChild(a);a.select();document.execCommand('copy');a.remove();done()}
+    catch(e){toast(x)}
+  }
+  try{navigator.clipboard.writeText(x).then(done,fb)}catch(e){fb()}
+}
+function shareText(x){
+  if(!x){toast(t('errEnter'));return}
+  if(navigator.share){navigator.share({text:x}).catch(function(){})}else copyText(x);
+}
+function pushHist(x){
+  if(!x){toast(t('errEnter'));return}
+  hist.unshift({t:Date.now(),x:x}); if(hist.length>200)hist.length=200;
+  save('rpc.history',hist); renderHist(); toast(t('saved'));
+}
+
+/* ---------- unit selects ---------- */
+function fillUnits(){
+  $$('select[data-units]').forEach(function(sel){
+    var v=sel.value||sel.dataset.def;
+    sel.innerHTML=Core.UNITS.map(function(k){return '<option value="'+k+'">'+u(k)+'</option>'}).join('');
+    sel.value=v;
+  });
+}
+
+/* ---------- calculators ---------- */
+function calcConvert(){
+  var a=num('#cv-amt'), from=$('#cv-from').value, to=$('#cv-to').value, box=$('#res-convert');
+  if(isNaN(a)){box.innerHTML=hint('errEnter');$('#cv-all').innerHTML='';cur.convert='';return}
+  var kg=a*kgPer(from), out=kg/kgPer(to);
+  box.innerHTML='<div class="sub">'+fmt(a)+' '+u(from)+' =</div><div class="big">'+fmt(out)+' '+u(to)+'</div>'+
+    kv(t('weight'),mixedText(kg));
+  $('#cv-all').innerHTML=Core.UNITS.map(function(k){return kv(u(k),fmt(kg/kgPer(k),4))}).join('');
+  cur.convert=fmt(a)+' '+u(from)+' = '+fmt(out)+' '+u(to)+' ('+mixedText(kg)+')';
+}
+function calcTotal(){
+  var rate=num('#tt-rate'), qty=num('#tt-qty'), ru=$('#tt-ru').value, qu=$('#tt-qu').value, box=$('#res-total');
+  if(isNaN(rate)||isNaN(qty)){box.innerHTML=hint('errQty');cur.total='';return}
+  var kg=qty*kgPer(qu), total=rate*kg/kgPer(ru), perKg=rate/kgPer(ru);
+  box.innerHTML='<div class="sub">'+fmt(qty)+' '+u(qu)+' × '+money(rate)+' / '+u(ru)+'</div><div class="big">'+money(total)+'</div>'+
+    kv(t('weight'),mixedText(kg))+kv(t('perKg'),money(perKg))+kv(t('perMon'),money(perKg*S.mon));
+  cur.total=fmt(qty)+' '+u(qu)+' × '+money(rate)+'/'+u(ru)+' = '+money(total)+' ('+mixedText(kg)+')';
+}
+function calcUnit(){
+  var total=num('#un-total'), qty=num('#un-qty'), qu=$('#un-qu').value, box=$('#res-unit');
+  if(isNaN(total)||isNaN(qty)||qty<=0){box.innerHTML=hint('errQty');cur.unit='';return}
+  var kg=qty*kgPer(qu), perKg=total/kg;
+  box.innerHTML='<div class="sub">'+money(total)+' / '+fmt(qty)+' '+u(qu)+' ('+mixedText(kg)+')</div>'+
+    '<div class="two"><div class="mini"><span class="l">'+t('perKg')+'</span><span class="v">'+money(perKg)+'</span></div>'+
+    '<div class="mini"><span class="l">'+t('perMon')+'</span><span class="v">'+money(perKg*S.mon)+'</span></div></div>'+
+    kv(t('perSer'),money(perKg*kgPer('ser')));
+  cur.unit=money(total)+' / '+fmt(qty)+' '+u(qu)+' → '+t('perKg')+': '+money(perKg)+', '+t('perMon')+': '+money(perKg*S.mon);
+}
+function calcRange(){
+  var from=num('#rg-from'), to=num('#rg-to'), step=num('#rg-step'), rate=num('#rg-rate');
+  var qu=$('#rg-qu').value, ru=$('#rg-ru').value, box=$('#res-range');
+  if(isNaN(from)||isNaN(to)||isNaN(step)||step<=0||to<from){box.innerHTML='<div class="card">'+hint('errRange')+'</div>';cur.range='';return}
+  if(isNaN(rate)){box.innerHTML='<div class="card">'+hint('errQty')+'</div>';cur.range='';return}
+  var n=Math.floor((to-from)/step+1e-9)+1;
+  if(n>300){box.innerHTML='<div class="card">'+hint('errMany')+'</div>';cur.range='';return}
+  var rows='', lines=[];
+  for(var i=0;i<n;i++){
+    var q=from+i*step, kg=q*kgPer(qu), price=rate*kg/kgPer(ru), mon=kg/S.mon;
+    rows+='<tr><td>'+fmt(q)+' '+u(qu)+'</td><td>'+fmt(kg,3)+'</td><td>'+fmt(mon,3)+'</td><td>'+money(price)+'</td></tr>';
+    lines.push(fmt(q)+' '+u(qu)+' | '+fmt(kg,3)+' '+u('kg')+' | '+fmt(mon,3)+' '+u('mon')+' | '+money(price));
+  }
+  box.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>'+t('colQty')+'</th><th>'+t('colKg')+'</th><th>'+t('colMon')+'</th><th>'+t('colPrice')+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  cur.range=t('rate')+': '+money(rate)+'/'+u(ru)+'\n'+lines.join('\n');
+}
+function calcProfit(){
+  var buy=num('#pf-buy'), sell=num('#pf-sell'), qty=num('#pf-qty'), ru=$('#pf-ru').value, qu=$('#pf-qu').value, box=$('#res-profit');
+  if(isNaN(buy)||isNaN(sell)||isNaN(qty)){box.innerHTML=hint('errQty');cur.profit='';return}
+  var kg=qty*kgPer(qu), units=kg/kgPer(ru), cost=buy*units, sale=sell*units, p=sale-cost;
+  var cls=p>0.005?'good':(p<-0.005?'bad':''), label=p>0.005?t('profit'):(p<-0.005?t('loss'):t('even'));
+  var pct=cost>0?p/cost*100:NaN;
+  box.innerHTML='<div class="sub">'+label+'</div><div class="big '+cls+'">'+money(Math.abs(p))+'</div>'+
+    kv(t('invest'),money(cost))+kv(t('sales'),money(sale))+
+    kv(t('perUnitProfit')+' '+u(ru),money(sell-buy))+
+    (isNaN(pct)?'':kv(t('percent'),fmt(pct,2)+'%'))+kv(t('weight'),mixedText(kg));
+  cur.profit=fmt(qty)+' '+u(qu)+': '+t('buy')+' '+money(buy)+'/'+u(ru)+', '+t('sell')+' '+money(sell)+'/'+u(ru)+' → '+label+' '+money(Math.abs(p))+(isNaN(pct)?'':' ('+fmt(pct,2)+'%)');
+}
+function calcAll(){calcConvert();calcTotal();calcUnit();calcRange();calcProfit()}
+
+/* ---------- khata ---------- */
+function khataTotals(){
+  var g=0,kg=0;
+  khata.forEach(function(it){var w=it.q*kgPer(it.qu);kg+=w;g+=it.r*w/kgPer(it.ru)});
+  return {g:g,kg:kg};
+}
+function renderKhata(){
+  var box=$('#kh-list'), sum=$('#kh-sum'), acts=$('#kh-acts');
+  if(!khata.length){box.innerHTML=hint('noItems');sum.hidden=true;acts.hidden=true;cur.khata='';return}
+  box.innerHTML=khata.map(function(it,i){
+    var w=it.q*kgPer(it.qu), tot=it.r*w/kgPer(it.ru);
+    return '<div class="item"><div class="it-main"><b>'+esc(it.n)+'</b><span class="muted">'+fmt(it.q)+' '+u(it.qu)+' × '+money(it.r)+' / '+u(it.ru)+'</span></div>'+
+      '<div class="it-tot">'+money(tot)+'</div>'+
+      '<button class="icon-btn" type="button" data-act="kdel" data-i="'+i+'" aria-label="'+t('delete')+'">×</button></div>';
+  }).join('');
+  var s=khataTotals();
+  sum.hidden=false; acts.hidden=false;
+  sum.innerHTML='<div class="sub">'+t('grand')+'</div><div class="big">'+money(s.g)+'</div>'+kv(t('totalWeight'),mixedText(s.kg));
+  cur.khata=khata.map(function(it,i){
+    var w=it.q*kgPer(it.qu), tot=it.r*w/kgPer(it.ru);
+    return (i+1)+'. '+it.n+': '+fmt(it.q)+' '+u(it.qu)+' × '+money(it.r)+'/'+u(it.ru)+' = '+money(tot);
+  }).join('\n')+'\n'+t('grand')+': '+money(s.g)+' ('+mixedText(s.kg)+')';
+}
+function addKhata(){
+  var q=num('#kh-qty'), r=num('#kh-rate');
+  if(isNaN(q)||isNaN(r)){toast(t('errQty'));return}
+  var n=$('#kh-name').value.trim()||(t('item')+' '+dig(khata.length+1));
+  khata.push({n:n,q:q,qu:$('#kh-qu').value,r:r,ru:$('#kh-ru').value});
+  save('rpc.khata',khata);
+  $('#kh-name').value='';$('#kh-qty').value='';$('#kh-rate').value='';
+  renderKhata(); $('#kh-name').focus();
+}
+
+/* ---------- history ---------- */
+function fmtDate(ts){
+  var d=new Date(ts), loc=(S.lang==='bn'?'bn-BD':'en-GB')+'-u-nu-latn';
+  try{
+    return dig(d.toLocaleDateString(loc,{day:'numeric',month:'short',year:'numeric'})+', '+d.toLocaleTimeString(loc,{hour:'2-digit',minute:'2-digit'}));
+  }catch(e){return dig(d.toISOString().slice(0,16).replace('T',' '))}
+}
+function renderHist(){
+  var box=$('#hist-list'), acts=$('#hist-acts');
+  if(!hist.length){box.innerHTML=hint('noHist');acts.hidden=true;return}
+  acts.hidden=false;
+  box.innerHTML=hist.map(function(h,i){
+    return '<div class="hist-item"><span class="when">'+fmtDate(h.t)+'</span><pre>'+esc(h.x)+'</pre>'+
+      '<div class="acts"><button class="btn ghost" type="button" data-act="hcopy" data-i="'+i+'">'+t('copy')+'</button>'+
+      '<button class="btn warn" type="button" data-act="hdel" data-i="'+i+'">'+t('delete')+'</button></div></div>';
+  }).join('');
+}
+
+/* ---------- settings / chrome ---------- */
+function renderChrome(){
+  $('#mon-chip').textContent=t('oneMon')+' '+fmt(S.mon)+' '+u('kg');
+  $$('[data-mon]').forEach(function(b){
+    var v=Number(b.dataset.mon); b.textContent=fmt(v)+' '+u('kg'); b.setAttribute('aria-pressed',String(v===S.mon));
+  });
+  $('#st-note').textContent=t('stNote');
+  $$('[data-set]').forEach(function(b){
+    var p=b.dataset.set.split(':'); b.setAttribute('aria-pressed',String(S[p[0]]===p[1]));
+  });
+  $$('[data-mode]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.mode===mode))});
+}
+function applyTheme(){
+  var r=document.documentElement;
+  if(S.theme==='auto')r.removeAttribute('data-theme'); else r.setAttribute('data-theme',S.theme);
+}
+function applyLang(){
+  document.documentElement.lang=S.lang;
+  $$('[data-i18n]').forEach(function(el){el.textContent=t(el.dataset.i18n)});
+  $('#gear').setAttribute('aria-label',S.lang==='bn'?'সেটিংস':'Settings');
+  fillUnits(); renderChrome(); calcAll(); renderKhata(); renderHist();
+}
+function saveSettings(){save('rpc.settings',S)}
+function monChanged(skipInput){
+  saveSettings(); renderChrome(); calcAll(); renderKhata();
+  if(!skipInput)$('#st-mon').value=S.mon;
+}
+function showTab(name){
+  tab=name;
+  ['convert','price','khata','history','settings'].forEach(function(n){$('#p-'+n).hidden=(n!==name)});
+  $$('nav.tabs [data-tab]').forEach(function(b){
+    if(b.dataset.tab===name)b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
+  });
+  window.scrollTo(0,0);
+}
+function setMode(m){
+  mode=m;
+  ['total','unit','range','profit'].forEach(function(n){$('#m-'+n).hidden=(n!==m)});
+  renderChrome();
+}
+function armed(btn,fn){
+  if(btn.classList.contains('armed')){btn.classList.remove('armed');btn.textContent=btn.dataset.label;fn();return}
+  btn.dataset.label=btn.textContent; btn.classList.add('armed'); btn.textContent=t('clearConfirm');
+  setTimeout(function(){if(btn.classList.contains('armed')){btn.classList.remove('armed');btn.textContent=btn.dataset.label}},3000);
+}
+
+/* ---------- events ---------- */
+document.addEventListener('input',function(e){
+  if(e.target.id==='st-mon'){
+    var v=Core.num(e.target.value);
+    if(v>0&&v<10000){S.mon=v;monChanged(true)}
+    return;
+  }
+  if(e.target.closest('#p-convert,#p-price'))calcAll();
+});
+document.addEventListener('change',function(e){
+  if(e.target.closest('#p-convert,#p-price'))calcAll();
+});
+document.addEventListener('click',function(e){
+  var b=e.target.closest('button'); if(!b)return;
+  if(b.dataset.tab){showTab(b.dataset.tab);return}
+  if(b.dataset.mode){setMode(b.dataset.mode);return}
+  if(b.dataset.mon){S.mon=Number(b.dataset.mon);monChanged();return}
+  if(b.dataset.set){
+    var p=b.dataset.set.split(':'); S[p[0]]=p[1]; saveSettings();
+    if(p[0]==='theme')applyTheme();
+    applyLang(); return;
+  }
+  var a=b.dataset.act; if(!a)return;
+  var src=b.dataset.src, text=src==='price'?cur[mode]:cur[src];
+  switch(a){
+    case 'preset': $('#cv-from').value=b.dataset.from; $('#cv-to').value=b.dataset.to; calcConvert(); break;
+    case 'swap': var f=$('#cv-from'),tt=$('#cv-to'),x=f.value; f.value=tt.value; tt.value=x; calcConvert(); break;
+    case 'save': pushHist(text); break;
+    case 'copy': copyText(text); break;
+    case 'share': shareText(text); break;
+    case 'kadd': addKhata(); break;
+    case 'kdel': khata.splice(Number(b.dataset.i),1); save('rpc.khata',khata); renderKhata(); break;
+    case 'kclear': armed(b,function(){khata=[];save('rpc.khata',khata);renderKhata()}); break;
+    case 'hdel': hist.splice(Number(b.dataset.i),1); save('rpc.history',hist); renderHist(); break;
+    case 'hcopy': copyText((hist[Number(b.dataset.i)]||{}).x); break;
+    case 'hclear': armed(b,function(){hist=[];save('rpc.history',hist);renderHist()}); break;
+    case 'resetmon': S.mon=40; monChanged(); break;
+  }
+});
+
+/* ---------- start ---------- */
+if(!navigator.share)$$('[data-act="share"]').forEach(function(b){b.hidden=true});
+applyTheme();
+$('#st-mon').value=S.mon;
+setMode('total');
+showTab('convert');
+applyLang();
+})();
+</script>
+
+</body>
+</html>
